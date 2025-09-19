@@ -18,17 +18,14 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
     public ResponseEntity<?> updateUser(UpdateProfileRequest request) {
         Optional<User> user = userRepository.findByUsername(request.getUsername());
         User userByemail = userRepository.findByEmail(request.getEmail());
         if (!user.isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("msg", "bad request", "data", "username is not valid"));
         }
-        if (userByemail != null) {
-            return ResponseEntity.badRequest().body(Map.of("msg", "bad request", "data", "email is already use"));
+        if (userByemail != null && !userByemail.getEmail().equals(request.getEmail())) {
+            return ResponseEntity.badRequest().body(Map.of("msg", "bad request", "data", "email is already use 1"));
         }
         User newUser = user.get();
         newUser.setAddress(request.getAddress());
@@ -41,13 +38,12 @@ public class UserService {
         return ResponseEntity.ok(Map.of("msg", "success", "data", "save successfull"));
     }
 
-    public ResponseEntity<?> getUserByUsername(String header) {
-        String jwt = header.substring(7);
-        Long id = jwtUtil.getUserIdFromToken(jwt);
-        User user = userRepository.findByUid(id);
-        if(user == null){
-            Re
+    public ResponseEntity<?> getUserByUsername(String username) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body(Map.of("msg", "bad request", "data", "username is not valid"));
         }
+        return ResponseEntity.ok(user);
     }
 
 }

@@ -11,8 +11,8 @@ import com.example.ogani.models.Product;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    @Query(value = "Select * from Product order by price limit 8 ", nativeQuery = true)
-    List<Product> getListByPrice();
+    @Query(value = "SELECT * FROM product ORDER BY id DESC LIMIT 10", nativeQuery = true)
+    List<Product> getListNewest(int number);
 
     @Query(value = "Select * from Product where category_id = :id order by rand() limit 4", nativeQuery = true)
     List<Product> findRelatedProduct(long id);
@@ -25,5 +25,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query(value = "Select p from Product p where p.name like %:keyword% order by id desc")
     List<Product> searchProduct(String keyword);
+
+    @Query(value = "Select * from Product order by price limit 8 ",nativeQuery = true)
+    List<Product> getListByPrice();
+
+    Long findQuantityById(Long productId);
 
 }

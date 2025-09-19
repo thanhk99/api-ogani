@@ -14,6 +14,8 @@ import com.example.ogani.dtos.response.MessageResponse;
 import com.example.ogani.service.AuthService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.validation.Valid;
 
 @RestController
@@ -39,10 +41,19 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 
-    // @PostMapping("/logout")
-    // @Operation(summary = "Đăng xuất")
-    // public ResponseEntity<?> logoutUser() {
-    // return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
-    // .body(new MessageResponse("You've been logout!"));
-    // }
+    @PostMapping("/logout")
+    @Operation(summary = "Đăng xuất")
+    public ResponseEntity<?> logoutUser(HttpServletResponse response) {
+        Cookie cookie = new Cookie("accessToken", null); // Set value to null to clear it
+        cookie.setPath("/"); // Ensure the path matches the original cookie
+        cookie.setHttpOnly(true); // Match the original cookie settings
+        cookie.setMaxAge(0); // Set max age to 0 to expire the cookie immediately
+        cookie.setSecure(true); // Use secure flag if your app uses HTTPS
+
+        // Add the cookie to the response header
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok()
+                .body(new MessageResponse("You've been logout!"));
+    }
 }

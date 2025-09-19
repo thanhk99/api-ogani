@@ -43,6 +43,6 @@ public class User {
     private Role role;
 
     public enum Role {
-        USER, ADMIN, GUEST
+        ROLE_USER, ROLE_ADMIN, ROLE_MODERATOR
     }
 }

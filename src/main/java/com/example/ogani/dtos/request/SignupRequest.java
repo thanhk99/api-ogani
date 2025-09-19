@@ -1,5 +1,7 @@
 package com.example.ogani.dtos.request;
 
+import com.example.ogani.models.User.Role;
+
 import lombok.*;
 
 @Data
@@ -13,5 +15,7 @@ public class SignupRequest {
     private String email;
 
     private String password;
+
+    private Role role ;
 
 }

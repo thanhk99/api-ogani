@@ -33,9 +33,7 @@ public class SecurityConfig {
         .csrf(AbstractHttpConfigurer::disable) // Cách mới để disable CSRF
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(
-                "/api/auth/login",
-                "/api/auth/register",
-                "/api/auth/refresh")
+                "/api/**")
             .permitAll()
             .anyRequest().authenticated())
         .sessionManagement(session -> session

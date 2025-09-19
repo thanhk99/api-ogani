@@ -77,7 +77,7 @@ public class AuthService {
             user.setUsername(signupRequest.getUsername());
             user.setEmail(signupRequest.getEmail());
             user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
-            user.setRole(Role.USER);
+            user.setRole(signupRequest.getRole() != null ? signupRequest.getRole() : Role.ROLE_USER);
             user.setEnabled(true);
 
             User savedUser = userRepository.save(user);
@@ -120,12 +120,13 @@ public class AuthService {
             String accessToken = jwtUtil.generateAccessToken(user);
             RefreshToken refreshToken = jwtUtil.generateRefreshToken(user);
 
-            return ResponseEntity.ok(Map.of("message", "success", "data",
+            return ResponseEntity.ok(
                     new AuthResponse(
                             accessToken,
                             refreshToken.getToken(),
                             user.getUid(),
-                            user.getUsername())));
+                            user.getUsername(),
+                            user.getRole()));
 
         } catch (BadCredentialsException e) {
             return ResponseEntity
@@ -138,40 +139,40 @@ public class AuthService {
         }
     }
 
-    @Transactional
-    public ResponseEntity<?> RefreshTokenService(RefreshTokenRequest refreshTokenRequest) {
-        try {
-            String requestRefreshToken = refreshTokenRequest.getRefreshToken();
-            if (requestRefreshToken == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Invalid refresh token"));
-            }
+    // @Transactional
+    // public ResponseEntity<?> RefreshTokenService(RefreshTokenRequest refreshTokenRequest) {
+    //     try {
+    //         String requestRefreshToken = refreshTokenRequest.getRefreshToken();
+    //         if (requestRefreshToken == null) {
+    //             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+    //                     .body(Map.of("error", "Invalid refresh token"));
+    //         }
 
-            RefreshToken refreshToken = refreshTokenRepository.findByToken(requestRefreshToken);
-            if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-                refreshTokenRepository.delete(refreshToken);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "refresh token expried"));
-            }
-            refreshTokenRepository.delete(refreshToken);
+    //         RefreshToken refreshToken = refreshTokenRepository.findByToken(requestRefreshToken);
+    //         if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+    //             refreshTokenRepository.delete(refreshToken);
+    //             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "refresh token expried"));
+    //         }
+    //         refreshTokenRepository.delete(refreshToken);
 
-            // Tạo token mới
-            User user = refreshToken.getUser();
-            String newAccessToken = jwtUtil.generateAccessToken(user);
+    //         // Tạo token mới
+    //         User user = refreshToken.getUser();
+    //         String newAccessToken = jwtUtil.generateAccessToken(user);
 
-            // Trả về response
-            return ResponseEntity.ok(
-                    new AuthResponse(
-                            newAccessToken,
-                            refreshToken.getToken(),
-                            user.getUid(),
-                            user.getUsername()));
+    //         // Trả về response
+    //         return ResponseEntity.ok(
+    //                 new AuthResponse(
+    //                         newAccessToken,
+    //                         refreshToken.getToken(),
+    //                         user.getUid(),
+    //                         user.getUsername()));
 
-        } catch (ResponseStatusException e) {
-            throw e; // Re-throw các lỗi đã được định nghĩa
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "refresh token expried"));
-        }
-    }
+    //     } catch (ResponseStatusException e) {
+    //         throw e; // Re-throw các lỗi đã được định nghĩa
+    //     } catch (Exception e) {
+    //         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "refresh token expried"));
+    //     }
+    // }
 
     public ResponseEntity<?> isExistEmail(SignupRequest signupRequest) {
         try {
