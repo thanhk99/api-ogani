@@ -1,6 +1,7 @@
 package com.example.ogani.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -49,7 +50,7 @@ public class OrderController {
 
         orderService.placeOrder(request);
 
-        return ResponseEntity.ok("Order Placed Successfully!");
+        return ResponseEntity.ok(Map.of("message", "Đặt hàng thành công"));
     }
 
     @PostMapping("/check")

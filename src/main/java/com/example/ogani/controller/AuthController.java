@@ -36,9 +36,7 @@ public class AuthController {
     @Operation(summary = "Đăng ký")
     public ResponseEntity<?> register(@Valid @RequestBody SignupRequest request) {
 
-        authService.signup(request);
-
-        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+        return authService.signup(request);
     }
 
     @PostMapping("/logout")
