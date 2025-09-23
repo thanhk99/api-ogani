@@ -2,8 +2,10 @@ package com.example.ogani.repository;
 
 import java.util.List;
 
+import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.util.Streamable;
 import org.springframework.stereotype.Repository;
 
 import com.example.ogani.models.Product;
@@ -29,6 +31,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "Select * from Product order by price limit 8 ",nativeQuery = true)
     List<Product> getListByPrice();
 
-    Long findQuantityById(Long productId);
+    Product findQuantityById(long productId);
+
+    List<Product> findByName(String productName);
 
 }

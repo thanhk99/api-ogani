@@ -43,7 +43,7 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public ResponseEntity<?> signup(@RequestBody SignupRequest signupRequest) {
+    public ResponseEntity<?> signup(SignupRequest signupRequest) {
         try {
             // Validate dữ liệu đầu vào
             if (signupRequest.getEmail() == null || signupRequest.getEmail().isEmpty()) {

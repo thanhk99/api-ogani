@@ -1,6 +1,7 @@
 package com.example.ogani.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -67,6 +68,7 @@ public class OrderService{
             orderDetailRepository.save(orderDetail);
             
         }
+        subTotalProduct(request.getOrderDetails());
         order.setTotalPrice(totalPrice);
         order.setUser(user);
         orderRepository.save(order);
@@ -85,17 +87,31 @@ public class OrderService{
 
     public ResponseEntity<?> processCheckOrder(List<ProductInOrderRequest> productIds) {
         for (ProductInOrderRequest productInOrder : productIds) {
-            Long productId = productInOrder.getProductId();
+            long productId = productInOrder.getProductId();
             int quantity = productInOrder.getQuantity();
-            // Kiểm tra số lượng tồn của sản phẩm với productId và quantity
-            Long availableQuantity = productRepository.findQuantityById(productId);
-            if (availableQuantity == null || availableQuantity < quantity) {
+            // // Kiểm tra số lượng tồn của sản phẩm với productId và quantity
+            long availableQuantity = productRepository.findQuantityById(productId).getQuantity();
+            if (availableQuantity == 0 || availableQuantity < quantity) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Sản phẩm với ID " + productId + " không đủ số lượng tồn.");
             }
             
         }
-        return ResponseEntity.ok("Tất cả sản phẩm đều đủ số lượng.");
+        return ResponseEntity.ok(Map.of( "message", "Sản phẩm đủ số lượng tồn"));
+    }
+
+    @Transactional
+    public void subTotalProduct(List<CreateOrderDetailRequest> orderDetails) {
+        for (CreateOrderDetailRequest rq : orderDetails) {
+            String productName = rq.getName();
+            int quantity = rq.getQuantity();
+            //findByName trả về List<Product> vì có thể có nhiều sản phẩm trùng tên
+            productRepository.findByName(productName).stream().findFirst().map(product -> {
+                int newQuantity = product.getQuantity() - quantity;
+                product.setQuantity(newQuantity);
+                return productRepository.save(product);
+            }).orElseThrow(() -> new NotFoundException("Not Found Product With Name: " + productName));
+        }
     }
 
 }
