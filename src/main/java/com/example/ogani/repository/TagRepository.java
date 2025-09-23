@@ -8,4 +8,6 @@ import com.example.ogani.models.Tag;
 @Repository
 public interface TagRepository extends JpaRepository<Tag, Long> {
 
+    Tag findByName(String name);
+
 }
