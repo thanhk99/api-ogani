@@ -33,10 +33,8 @@ public class ProductController {
 
     @GetMapping("/")
     @Operation(summary="Lấy ra danh sách sản phẩm")
-    public ResponseEntity<List<Product>> getList(){
-        List<Product> list = productService.getList();
-
-        return ResponseEntity.ok(list);
+    public ResponseEntity<?> getList(){
+       return productService.getList();
     }
 
     @GetMapping("/newest/{number}")

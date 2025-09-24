@@ -1,12 +1,14 @@
 package com.example.ogani.service;
 
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.example.ogani.models.Category;
@@ -14,6 +16,7 @@ import com.example.ogani.models.Image;
 import com.example.ogani.models.Product;
 import com.example.ogani.exception.NotFoundException;
 import com.example.ogani.dtos.request.CreateProductRequest;
+import com.example.ogani.dtos.response.ProductResponse;
 import com.example.ogani.repository.CategoryRepository;
 import com.example.ogani.repository.ImageRepository;
 import com.example.ogani.repository.ProductRepository;
@@ -30,8 +33,19 @@ public class ProductService{
     @Autowired
     private ImageRepository imageRepository;
 
-    public List<Product> getList() {
-        return productRepository.findAll(Sort.by("id").descending());
+    public ResponseEntity<?>  getList() {
+        List<Product> products= productRepository.findAll(Sort.by("id").descending());
+        List<ProductResponse> productResponses = new ArrayList<>();
+        for(Product product: products){
+            ProductResponse productResponse = new ProductResponse();
+            productResponse.setName(product.getName());
+            productResponse.setImage(product.getImages().iterator().next().getData());
+            productResponse.setPrice(product.getPrice());
+            productResponse.setQuantity(product.getQuantity());
+            productResponse.setCategory(product.getCategory().getName());
+            productResponses.add(productResponse);
+        }
+        return ResponseEntity.ok(productResponses);
     }
 
     public Product getProduct(long id) {
