@@ -88,7 +88,7 @@ public class BlogService {
 
     public ResponseEntity<?> deleteBlog(long id) {
         Blog blog = blogRepository.findById(id).orElseThrow(() -> new NotFoundException("Not Found Blog"));
-        blog.getTags().remove(this);
+        // blog.getTags().remove(this);
         blogRepository.delete(blog);
         return ResponseEntity.ok(Map.of( "message", "Delete blog success"));
     }
