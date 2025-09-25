@@ -25,6 +25,12 @@ public class CreateProductRequest {
     @Size(min=5,max=1000,message="Mô tả sản phẩm từ 5-1000 ký tự")
     private String description;
 
+    @NotNull(message = "Nội dung rỗng")
+    @NotEmpty(message="Nội dung rỗng")
+    @Schema(description = "Nội dung sản phẩm",example="Đây là sản phẩm thứ 1")
+    @Size(min=5,max=1000,message="Nội dung sản phẩm từ 5-1000 ký tự")
+    private String content;
+
     @NotNull(message = "Giá tiền rỗng")
     @NotEmpty(message = "Giá tiền rỗng")
     @Schema(description = "Giá sản phẩm",example = "12")

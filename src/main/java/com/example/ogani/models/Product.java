@@ -21,6 +21,9 @@ public class Product {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "content", columnDefinition = "TEXT")
+    private String content;
+    
     private long price;
 
     private int quantity;

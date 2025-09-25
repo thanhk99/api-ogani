@@ -13,4 +13,6 @@ public class ProductResponse {
     double price;
     int quantity;
     String category;
+    String description;
+    String content;
 }

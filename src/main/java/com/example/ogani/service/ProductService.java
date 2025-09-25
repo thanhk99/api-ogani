@@ -43,6 +43,8 @@ public class ProductService{
             productResponse.setPrice(product.getPrice());
             productResponse.setQuantity(product.getQuantity());
             productResponse.setCategory(product.getCategory().getName());
+            productResponse.setDescription(product.getDescription());
+            productResponse.setContent(product.getContent());
             productResponses.add(productResponse);
         }
         return ResponseEntity.ok(productResponses);
@@ -69,6 +71,7 @@ public class ProductService{
         Product product = new Product();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
+        product.setContent(request.getContent());
         product.setPrice(request.getPrice());
         product.setQuantity(request.getQuantity());
 
@@ -96,6 +99,7 @@ public class ProductService{
         Product product= productRepository.findById(id).orElseThrow(() -> new NotFoundException("Not Found Product With Id: " + id));
         product.setName(request.getName());
         product.setDescription(request.getDescription());
+        product.setContent(request.getContent());
         product.setPrice(request.getPrice());
         product.setQuantity(request.getQuantity());
         Category category = categoryRepository.findById(request.getCategoryId()).orElseThrow(()-> new NotFoundException("Not Found Category With Id: " + request.getCategoryId()));
