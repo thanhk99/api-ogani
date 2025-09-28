@@ -7,6 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductResponse {
+    Long id;
     String name;
     @Lob
     private byte[] image;

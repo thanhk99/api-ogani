@@ -38,6 +38,7 @@ public class ProductService{
         List<ProductResponse> productResponses = new ArrayList<>();
         for(Product product: products){
             ProductResponse productResponse = new ProductResponse();
+            productResponse.setId(product.getId());
             productResponse.setName(product.getName());
             productResponse.setImage(product.getImages().iterator().next().getData());
             productResponse.setPrice(product.getPrice());
