@@ -16,4 +16,5 @@ public class ProductResponse {
     String category;
     String description;
     String content;
+    String unit;
 }

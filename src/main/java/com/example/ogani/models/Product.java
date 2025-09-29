@@ -28,6 +28,9 @@ public class Product {
 
     private int quantity;
 
+    @Column(name = "unit")
+    private  String unit;
+
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;
@@ -35,5 +38,4 @@ public class Product {
     @ManyToMany
     @JoinTable(name = "product_image", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "image_id"))
     private Set<Image> images = new HashSet<>();
-
 }

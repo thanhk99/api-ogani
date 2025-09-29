@@ -21,6 +21,8 @@ import com.example.ogani.repository.CategoryRepository;
 import com.example.ogani.repository.ImageRepository;
 import com.example.ogani.repository.ProductRepository;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class ProductService{
 
@@ -33,19 +35,29 @@ public class ProductService{
     @Autowired
     private ImageRepository imageRepository;
 
-    public ResponseEntity<?>  getList() {
-        List<Product> products= productRepository.findAll(Sort.by("id").descending());
+    @Transactional
+    public ResponseEntity<?> getList() {
+        List<Product> products = productRepository.findAll(Sort.by("id").descending());
         List<ProductResponse> productResponses = new ArrayList<>();
+        
         for(Product product: products){
             ProductResponse productResponse = new ProductResponse();
             productResponse.setId(product.getId());
             productResponse.setName(product.getName());
-            productResponse.setImage(product.getImages().iterator().next().getData());
+            
+            // SỬA CHỖ NÀY - Kiểm tra images trước khi lấy
+            if (product.getImages() != null && !product.getImages().isEmpty()) {
+                productResponse.setImage(product.getImages().iterator().next().getData());
+            } else {
+                productResponse.setImage(null); // hoặc set ảnh mặc định
+            }
+            
             productResponse.setPrice(product.getPrice());
             productResponse.setQuantity(product.getQuantity());
             productResponse.setCategory(product.getCategory().getName());
             productResponse.setDescription(product.getDescription());
             productResponse.setContent(product.getContent());
+            productResponse.setUnit(product.getUnit());
             productResponses.add(productResponse);
         }
         return ResponseEntity.ok(productResponses);
