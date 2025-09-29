@@ -29,6 +29,10 @@ public class CategoryService  {
     public Category createCategory(CreateCategoryRequest request) {
         // TODO Auto-generated method stub
         Category category = new Category();
+        // kiểm tra trùng
+        if(categoryRepository.existsByName(request.getName())){
+            throw new NotFoundException("Category name is already in use!");
+        }
         category.setName(request.getName());
         category.setEnable(true);
         categoryRepository.save(category);

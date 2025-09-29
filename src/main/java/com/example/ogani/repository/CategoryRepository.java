@@ -14,6 +14,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     @Query("Select c from Category c where c.enable = true")
     List<Category> findALLByEnabled();
+    boolean existsByName(String name);
 
     Optional<Category> findByIdAndEnable(long id, boolean b);
 }
