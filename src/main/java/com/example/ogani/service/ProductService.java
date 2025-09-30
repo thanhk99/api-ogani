@@ -87,6 +87,7 @@ public class ProductService{
         product.setContent(request.getContent());
         product.setPrice(request.getPrice());
         product.setQuantity(request.getQuantity());
+        product.setUnit(request.getUnit());
 
         // Tìm category
         Category category = categoryRepository.findById(request.getCategoryId())
@@ -115,6 +116,9 @@ public class ProductService{
         product.setContent(request.getContent());
         product.setPrice(request.getPrice());
         product.setQuantity(request.getQuantity());
+        product.setUnit(request.getUnit());
+
+         // Tìm category
         Category category = categoryRepository.findById(request.getCategoryId()).orElseThrow(()-> new NotFoundException("Not Found Category With Id: " + request.getCategoryId()));
         product.setCategory(category);
 

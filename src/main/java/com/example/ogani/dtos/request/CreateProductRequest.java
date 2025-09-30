@@ -43,6 +43,11 @@ public class CreateProductRequest {
     @Size(min=0,message="Số lượng sản phẩm từ 0")
     private int quantity;
 
+    @NotNull(message = "Đơn vị rỗng")
+    @NotEmpty(message="Đơn vị rỗng")
+    @Schema(description = "Đơn vị sản phẩm",example="Cái")
+    private String unit;
+
     @NotNull(message = "Danh mục rỗng")
     @NotEmpty(message = "Danh mục rỗng")
     @Schema(description = "ID của danh mục",example="1")
