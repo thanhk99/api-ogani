@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.example.ogani.models.Order;
 import com.example.ogani.models.OrderDetail;
 import com.example.ogani.models.User;
+import com.example.ogani.models.Order.OrderStatus;
 import com.example.ogani.exception.NotFoundException;
 import com.example.ogani.dtos.request.CreateOrderDetailRequest;
 import com.example.ogani.dtos.request.CreateOrderRequest;
@@ -39,7 +40,7 @@ public class OrderService{
     private ProductRepository productRepository;
 
     @Transactional
-    public void placeOrder(CreateOrderRequest request) {
+    public Order placeOrder(CreateOrderRequest request) {
         Order order = new Order();
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow(() -> new NotFoundException("Not Found User With Username:" + request.getUsername()));
         order.setFirstname(request.getFirstname());
@@ -52,6 +53,7 @@ public class OrderService{
         order.setEmail(request.getEmail());
         order.setPhone(request.getPhone());
         order.setNote(request.getNote());   
+        order.setOrderStatus(OrderStatus.PENDING);
         orderRepository.save(order);
         long totalPrice = 0;
         //kiểm tra số lượng tồn của sản phẩm
@@ -71,7 +73,8 @@ public class OrderService{
         subTotalProduct(request.getOrderDetails());
         order.setTotalPrice(totalPrice);
         order.setUser(user);
-        orderRepository.save(order);
+        Order saveOrder =  orderRepository.save(order);
+        return saveOrder;
     }
 
     public List<Order> getList() {
@@ -112,6 +115,27 @@ public class OrderService{
                 return productRepository.save(product);
             }).orElseThrow(() -> new NotFoundException("Not Found Product With Name: " + productName));
         }
+    }
+
+    public boolean existsByOrderCode(String orderId) {
+        return orderRepository.existsById(Long.parseLong(orderId));
+    }
+
+    public boolean existsByOrderId(String orderId) {
+        return orderRepository.existsById(Long.parseLong(orderId));
+    }
+
+    @Transactional
+    public boolean confirmOrderPayment(String orderCode) {
+        Order order = orderRepository.findById(Long.parseLong(orderCode))
+                .orElseThrow(() -> new NotFoundException("Not Found Order With Id: " + orderCode));
+        if (order != null) {
+            order.setOrderStatus(Order.OrderStatus.PAID);
+            orderRepository.save(order);
+            return true;
+        }
+
+        return false;
     }
 
 }

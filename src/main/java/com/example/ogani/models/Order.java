@@ -40,6 +40,10 @@ public class Order {
 
     private long totalPrice;
 
+    @Column(name = "order_status")
+    @Enumerated(EnumType.STRING)
+    private OrderStatus orderStatus;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -47,4 +51,13 @@ public class Order {
     @OneToMany(mappedBy = "order")
     @JsonBackReference
     private Set<OrderDetail> orderdetails;
+
+    public enum OrderStatus {
+        PENDING,        
+        CONFIRMED,      
+        PAID,         
+        SHIPPING,       
+        COMPLETED,     
+        CANCELLED     
+    }
 }

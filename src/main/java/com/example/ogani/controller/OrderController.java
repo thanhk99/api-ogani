@@ -48,9 +48,9 @@ public class OrderController {
     @Operation(summary="Đặt hàng sản phẩm")
     public ResponseEntity<?> placeOrder(@RequestBody CreateOrderRequest request){
 
-        orderService.placeOrder(request);
+        Order order = orderService.placeOrder(request);
 
-        return ResponseEntity.ok(Map.of("message", "Đặt hàng thành công"));
+        return ResponseEntity.ok(Map.of("message", "Đặt hàng thành công" , "OrderId" ,order.getId() ));
     }
 
     @PostMapping("/check")
