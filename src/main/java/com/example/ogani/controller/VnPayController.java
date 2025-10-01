@@ -138,7 +138,6 @@ public class VnPayController {
             if ("00".equals(vnp_ResponseCode)) {
                 String orderId = queryParams.get("vnp_OrderInfo") ;
                 orderService.confirmOrderPayment(orderId);
-                log.info(orderId);
                 // Thanh toán thành công
                 response.put("status", "SUCCESS");
                 response.put("message", "Thanh toán thành công");

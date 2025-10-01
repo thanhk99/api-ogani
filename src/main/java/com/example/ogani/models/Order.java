@@ -1,5 +1,6 @@
 package com.example.ogani.models;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 import jakarta.persistence.*;
@@ -40,6 +41,8 @@ public class Order {
 
     private long totalPrice;
 
+    @Column(name = "pay_datetime")
+    private LocalDateTime payDateTime ;
     @Column(name = "order_status")
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus;
@@ -52,6 +55,8 @@ public class Order {
     @JsonBackReference
     private Set<OrderDetail> orderdetails;
 
+    @Column(name = "pay_method" , nullable = false)
+    private String payMethod;
     public enum OrderStatus {
         PENDING,        
         CONFIRMED,      

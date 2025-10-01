@@ -1,7 +1,9 @@
 package com.example.ogani.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -23,8 +25,10 @@ import com.example.ogani.repository.ProductRepository;
 import com.example.ogani.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class OrderService{
     
     @Autowired
@@ -53,18 +57,25 @@ public class OrderService{
         order.setEmail(request.getEmail());
         order.setPhone(request.getPhone());
         order.setNote(request.getNote());   
-        order.setOrderStatus(OrderStatus.PENDING);
+        log.info(order.getPayMethod());
+        if (request.getPayMethod().equals("COD")) {
+            order.setOrderStatus(OrderStatus.CONFIRMED);
+        }else{
+            order.setOrderStatus(OrderStatus.PENDING);
+        }
+        order.setPayMethod(request.getPayMethod());
         orderRepository.save(order);
         long totalPrice = 0;
         //kiểm tra số lượng tồn của sản phẩm
 
         for(CreateOrderDetailRequest rq: request.getOrderDetails()){
             OrderDetail orderDetail = new OrderDetail();
+
             orderDetail.setName(rq.getName());
             orderDetail.setPrice(rq.getPrice());
             orderDetail.setQuantity(rq.getQuantity());
             orderDetail.setSubTotal(rq.getPrice()* rq.getQuantity());
-            
+            orderDetail.setProductId(rq.getProductId());
             orderDetail.setOrder(order);
             totalPrice += orderDetail.getSubTotal();
             orderDetailRepository.save(orderDetail);
@@ -131,6 +142,7 @@ public class OrderService{
                 .orElseThrow(() -> new NotFoundException("Not Found Order With Id: " + orderCode));
         if (order != null) {
             order.setOrderStatus(Order.OrderStatus.PAID);
+            order.setPayDateTime(LocalDateTime.now());
             orderRepository.save(order);
             return true;
         }
@@ -138,4 +150,90 @@ public class OrderService{
         return false;
     }
 
+    public Order confirmOrder(Long orderId) {
+        Optional<Order> orderOptional = orderRepository.findById(orderId);
+        if (orderOptional.isPresent()) {
+            Order order = orderOptional.get();
+            
+            // Chỉ cho phép xác nhận đơn hàng khi đang ở trạng thái CONFIRMED
+            if (order.getOrderStatus() == OrderStatus.CONFIRMED) {
+                order.setOrderStatus(OrderStatus.SHIPPING);
+                return orderRepository.save(order);
+            } else {
+                throw new IllegalStateException("Không thể xác nhận đơn hàng với trạng thái hiện tại: " + order.getOrderStatus());
+            }
+        }
+        throw new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId);
+    }
+
+    public Order shipOrder(Long orderId) {
+        Optional<Order> orderOptional = orderRepository.findById(orderId);
+        if (orderOptional.isPresent()) {
+            Order order = orderOptional.get();
+            
+            // Chỉ cho phép bắt đầu giao hàng khi đã thanh toán (PAID)
+            if (order.getOrderStatus() == OrderStatus.PAID) {
+                order.setOrderStatus(OrderStatus.SHIPPING);
+                return orderRepository.save(order);
+            } else {
+                throw new IllegalStateException("Không thể bắt đầu giao hàng với trạng thái hiện tại: " + order.getOrderStatus());
+            }
+        }
+        throw new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId);
+    }
+
+    public Order completeOrder(Long orderId) {
+        Optional<Order> orderOptional = orderRepository.findById(orderId);
+        if (orderOptional.isPresent()) {
+            Order order = orderOptional.get();
+            
+            // Chỉ cho phép hoàn thành đơn hàng khi đang giao (SHIPPING)
+            if (order.getOrderStatus() == OrderStatus.SHIPPING) {
+                order.setOrderStatus(OrderStatus.COMPLETED);
+                order.setPayDateTime(LocalDateTime.now());
+                return orderRepository.save(order);
+            } else {
+                throw new IllegalStateException("Không thể hoàn thành đơn hàng với trạng thái hiện tại: " + order.getOrderStatus());
+            }
+        }
+        throw new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId);
+    }
+
+    public Order cancelOrder(Long orderId) {
+        Optional<Order> orderOptional = orderRepository.findById(orderId);
+        if (orderOptional.isPresent()) {
+            Order order = orderOptional.get();
+            
+            // Chỉ cho phép huỷ đơn hàng khi chưa hoàn thành
+            if (order.getOrderStatus() != OrderStatus.COMPLETED && 
+                order.getOrderStatus() != OrderStatus.CANCELLED) {
+                order.setOrderStatus(OrderStatus.CANCELLED);
+                return orderRepository.save(order);
+            } else {
+                throw new IllegalStateException("Không thể huỷ đơn hàng với trạng thái hiện tại: " + order.getOrderStatus());
+            }
+        }
+        throw new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId);
+    }
+
+    // API để cập nhật ngày thanh toán (khi thanh toán thành công)
+    public Order updatePaymentDate(Long orderId) {
+        Optional<Order> orderOptional = orderRepository.findById(orderId);
+        if (orderOptional.isPresent()) {
+            Order order = orderOptional.get();
+            order.setPayDateTime(LocalDateTime.now());
+            order.setOrderStatus(OrderStatus.PAID);
+            return orderRepository.save(order);
+        }
+        throw new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId);
+    }
+
+    public ResponseEntity<?> getOrderDetail(Long orderId) {
+        List<OrderDetail> orderOptional = orderDetailRepository.findByOrderId(orderId);
+        if (orderOptional != null) {
+            return ResponseEntity.ok(orderOptional);
+        }
+        return ResponseEntity.badRequest().body(Map.of("message","Không có dữ liệu"));
+       
+    }
 }

@@ -59,6 +59,8 @@ public class CreateOrderRequest {
     
     private String username;
 
+    private String payMethod ; 
+
     private List<CreateOrderDetailRequest> orderDetails;
     
 }

@@ -22,6 +22,9 @@ public class OrderDetail {
 
     private long subTotal;
 
+    @Column(name = "product_id" , nullable = false)
+    private long productId;
+
     @ManyToOne
     @JoinColumn(name = "order_id")
     private Order order;
