@@ -41,7 +41,10 @@ public class ReviewsController {
     public ResponseEntity<?> getAverageRatingByProductId(@PathVariable Long productId) {
         return reviewsService.getAverageRatingByProductId(productId);
     }
-
+    @GetMapping("/product/{productId}/order/{orderId}")
+    public ResponseEntity<?> getProductOrderId(@PathVariable Long productId, @PathVariable Long orderId) {
+        return reviewsService.getProductOrderId(productId, orderId);
+    }
     @GetMapping("/count/{productId}")
     public ResponseEntity<?> getReviewCountByProductId(@PathVariable Long productId) {
         return reviewsService.getReviewCountByProductId(productId);

@@ -18,21 +18,25 @@ public class Reviews {
     @Column(nullable = false)
     private Long productId;
     
-    @Column(nullable = false)
-    private String customerName;
+    @Column (nullable =  false)
+    private Long orderId;
     
     @Column(nullable = false)
-    private Integer rating;
+    private String reviewerName;
+    
+    @Column(nullable = false)
+    private Integer reviewRating;
     
     @Column(columnDefinition = "TEXT")
-    private String comment;
+    private String reviewComment;
     
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime reviewDate;
 
+    private boolean hasReview;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        reviewDate = LocalDateTime.now();
     }
 }

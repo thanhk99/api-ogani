@@ -1,5 +1,6 @@
 package com.example.ogani.service;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +17,8 @@ public class ReviewsService {
     private ReviewsRepository reviewsRepository;
 
     public ResponseEntity<?> createReview(Reviews reviewRequest) {
-        if (reviewsRepository.existsByProductIdAndCustomerName(
-            reviewRequest.getProductId(), reviewRequest.getCustomerName())) {
+        if (reviewsRepository.existsByProductIdAndReviewerName(
+            reviewRequest.getProductId(), reviewRequest.getReviewerName())) {
             return ResponseEntity.badRequest().body(Map.of(
                 "message", "You have already submitted a review for this product"
             ));
@@ -45,6 +46,12 @@ public class ReviewsService {
                 .orElse(0.0);
         return ResponseEntity.ok(Map.of(
             "averageRating", averageRating
+        ));
+    }
+    public ResponseEntity<?> getProductOrderId(Long productId , Long orderId) {
+        Reviews list = reviewsRepository.findByProductIdAndOrderId(productId,orderId);
+        return ResponseEntity.ok(Map.of(
+            "data", list
         ));
     }
 
