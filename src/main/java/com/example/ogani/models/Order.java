@@ -43,6 +43,10 @@ public class Order {
 
     @Column(name = "pay_datetime")
     private LocalDateTime payDateTime ;
+
+    @Column(name = "date_order")
+    private LocalDateTime dateOrder; 
+    
     @Column(name = "order_status")
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus;

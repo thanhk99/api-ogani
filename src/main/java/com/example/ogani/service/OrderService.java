@@ -56,7 +56,8 @@ public class OrderService{
         order.setPostCode(request.getPostCode());
         order.setEmail(request.getEmail());
         order.setPhone(request.getPhone());
-        order.setNote(request.getNote());   
+        order.setNote(request.getNote());  
+        order.setDateOrder(LocalDateTime.now()); 
         log.info(order.getPayMethod());
         if (request.getPayMethod().equals("COD")) {
             order.setOrderStatus(OrderStatus.CONFIRMED);

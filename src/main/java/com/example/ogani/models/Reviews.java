@@ -33,7 +33,7 @@ public class Reviews {
     @Column(nullable = false)
     private LocalDateTime reviewDate;
 
-    private boolean hasReview;
+    private boolean hasReview = true;
 
     @PrePersist
     protected void onCreate() {

@@ -130,34 +130,63 @@ public class VnPayController {
         
         Map<String, String> response = new HashMap<>();
         
+        log.info("Received payment callback with params: {}", queryParams);
+        
         boolean isValidSignature = validatePaymentReturn(queryParams);
         
         if (isValidSignature) {
             String vnp_ResponseCode = queryParams.get("vnp_ResponseCode");
-            System.out.println(vnp_ResponseCode);
+            log.info("Payment response code: {}", vnp_ResponseCode);
+            
             if ("00".equals(vnp_ResponseCode)) {
-                String orderId = queryParams.get("vnp_OrderInfo") ;
-                orderService.confirmOrderPayment(orderId);
-                // Thanh toán thành công
-                response.put("status", "SUCCESS");
-                response.put("message", "Thanh toán thành công");
-                response.put("transactionId", queryParams.get("vnp_TransactionNo"));
-                response.put("orderInfo", queryParams.get("vnp_OrderInfo"));
-                response.put("amount", String.valueOf(Integer.parseInt(queryParams.get("vnp_Amount")) / 100));
+                String orderId = queryParams.get("vnp_OrderInfo");
+                
+                try {
+                    // Xác nhận thanh toán đơn hàng
+                    orderService.confirmOrderPayment(orderId);
+                    
+                    // Thanh toán thành công
+                    response.put("status", "SUCCESS");
+                    response.put("message", "Thanh toán thành công");
+                    response.put("transactionId", queryParams.get("vnp_TransactionNo"));
+                    response.put("orderInfo", orderId);
+                    
+                    // Xử lý amount an toàn
+                    String amountStr = queryParams.get("vnp_Amount");
+                    try {
+                        long amount = Long.parseLong(amountStr) / 100;
+                        response.put("amount", String.valueOf(amount));
+                    } catch (NumberFormatException e) {
+                        log.warn("Invalid amount format: {}", amountStr);
+                        response.put("amount", "0");
+                    }
+                    
+                } catch (Exception e) {
+                    log.error("Error confirming order payment for order: {}", orderId, e);
+                    response.put("status", "ERROR");
+                    response.put("message", "Lỗi xác nhận đơn hàng");
+                }
+                
             } else {
                 // Thanh toán thất bại
                 response.put("status", "FAILED");
                 response.put("message", "Thanh toán thất bại");
                 response.put("responseCode", vnp_ResponseCode);
+                
+                // Lấy thông tin đơn hàng để ghi log
+                String orderId = queryParams.get("vnp_OrderInfo");
+                log.warn("Payment failed for order: {}, response code: {}", orderId, vnp_ResponseCode);
             }
         } else {
             // Chữ ký không hợp lệ
             response.put("status", "INVALID_SIGNATURE");
             response.put("message", "Chữ ký không hợp lệ");
+            log.warn("Invalid signature detected in payment callback");
         }
+        
+        log.info("Payment callback response: {}", response);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
-
 
     private boolean validatePaymentReturn(Map<String, String> vnp_Params) {
         String vnp_SecureHash = vnp_Params.get("vnp_SecureHash");
