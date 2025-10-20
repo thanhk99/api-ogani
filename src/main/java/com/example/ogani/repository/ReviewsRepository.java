@@ -16,7 +16,7 @@ public interface ReviewsRepository extends JpaRepository<Reviews, Long> {
     @Query(value = "SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = :productId" , nativeQuery = true)
     Optional<Double> findAverageRatingByProductId(@Param("productId") Long productId);
 
-    boolean existsByProductIdAndReviewerName(Long productId, String reviewerName);
-
     Reviews findByProductIdAndOrderId(Long productId, Long orderId);
+
+    boolean existsByProductIdAndReviewerNameAndOrderId(Long productId, String reviewerName, Long orderId);
 }

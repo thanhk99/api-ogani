@@ -17,8 +17,8 @@ public class ReviewsService {
     private ReviewsRepository reviewsRepository;
 
     public ResponseEntity<?> createReview(Reviews reviewRequest) {
-        if (reviewsRepository.existsByProductIdAndReviewerName(
-            reviewRequest.getProductId(), reviewRequest.getReviewerName())) {
+        if (reviewsRepository.existsByProductIdAndReviewerNameAndOrderId(
+            reviewRequest.getProductId(), reviewRequest.getReviewerName(),reviewRequest.getOrderId())) {
             return ResponseEntity.badRequest().body(Map.of(
                 "message", "You have already submitted a review for this product"
             ));
