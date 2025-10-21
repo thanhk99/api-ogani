@@ -13,7 +13,7 @@ import com.example.ogani.models.Reviews;
 
 @Repository
 public interface ReviewsRepository extends JpaRepository<Reviews, Long> {
-    @Query(value = "SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = :productId" , nativeQuery = true)
+    @Query(value = "SELECT AVG(r.review_rating) FROM reviews r WHERE r.product_id = :productId" , nativeQuery = true)
     Optional<Double> findAverageRatingByProductId(@Param("productId") Long productId);
 
     Reviews findByProductIdAndOrderId(Long productId, Long orderId);
