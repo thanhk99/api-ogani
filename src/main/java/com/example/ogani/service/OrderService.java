@@ -19,6 +19,7 @@ import com.example.ogani.exception.NotFoundException;
 import com.example.ogani.dtos.request.CreateOrderDetailRequest;
 import com.example.ogani.dtos.request.CreateOrderRequest;
 import com.example.ogani.dtos.request.ProductInOrderRequest;
+import com.example.ogani.dtos.response.Notification;
 import com.example.ogani.repository.OrderDetailRepository;
 import com.example.ogani.repository.OrderRepository;
 import com.example.ogani.repository.ProductRepository;
@@ -42,6 +43,9 @@ public class OrderService{
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired 
+    private SseNotificationService sseNotificationService;
 
     @Transactional
     public Order placeOrder(CreateOrderRequest request) {
@@ -86,6 +90,8 @@ public class OrderService{
         order.setTotalPrice(totalPrice);
         order.setUser(user);
         Order saveOrder =  orderRepository.save(order);
+        sendNewOrderNotification(saveOrder);
+
         return saveOrder;
     }
 
@@ -236,5 +242,21 @@ public class OrderService{
         }
         return ResponseEntity.badRequest().body(Map.of("message","Không có dữ liệu"));
        
+    }
+    private void sendNewOrderNotification(Order order) {
+        Notification notification = new Notification();
+        notification.setType("NEW_ORDER");
+        notification.setMessage("🆕 Có đơn hàng mới #" + order.getId() + " từ " + 
+            order.getFirstname() + " " + order.getLastname());
+        notification.setOrderId(order.getId());
+        notification.setTimestamp(LocalDateTime.now());
+
+        // Gửi đến admin (user ID = 1)
+        sseNotificationService.sendNotification(2L, notification);
+        
+        // Hoặc broadcast đến tất cả admin đang kết nối
+        // sseNotificationService.broadcast(notification);
+        
+        System.out.println("📢 Notification sent for new order: " + order.getId());
     }
 }

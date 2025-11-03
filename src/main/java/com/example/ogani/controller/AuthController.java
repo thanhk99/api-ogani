@@ -1,6 +1,8 @@
     package com.example.ogani.controller;
 
-    import org.springframework.beans.factory.annotation.Autowired;
+    import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
     import org.springframework.http.ResponseEntity;
     import org.springframework.web.bind.annotation.CrossOrigin;
     import org.springframework.web.bind.annotation.PostMapping;
@@ -11,7 +13,9 @@
     import com.example.ogani.dtos.request.LoginRequest;
     import com.example.ogani.dtos.request.SignupRequest;
     import com.example.ogani.dtos.response.MessageResponse;
-    import com.example.ogani.service.AuthService;
+    import com.example.ogani.models.User;
+import com.example.ogani.repository.UserRepository;
+import com.example.ogani.service.AuthService;
 
     import io.swagger.v3.oas.annotations.Operation;
     import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +29,9 @@
 
         @Autowired
         private AuthService authService;
+
+        @Autowired
+        private UserRepository userRepository;
 
         @PostMapping("/login")
         @Operation(summary = "Đăng nhập")
@@ -55,5 +62,26 @@
 
             return ResponseEntity.ok()
                     .body(new MessageResponse("You've been logout!"));
+        }
+
+        @PostMapping("/forgot-password")
+        public ResponseEntity<?> forgotPassword(@RequestBody User entity){
+            System.out.println("📧 Forgot password request for: " + entity.getEmail());
+            
+            User user = userRepository.findByEmail(entity.getEmail());
+            if (user == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "bad_request",
+                    "message", "Không tìm thấy địa chỉ email"
+                ));
+            }
+            
+            // Gọi async method - không chờ kết quả
+            authService.handleForgotPasswordAsync(user);
+            
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Yêu cầu đặt lại mật khẩu đã được tiếp nhận. Vui lòng kiểm tra email trong vài phút."
+            ));
         }
     }
