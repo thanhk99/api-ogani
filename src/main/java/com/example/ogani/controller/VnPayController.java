@@ -44,14 +44,12 @@ public class VnPayController {
     // Thông tin cấu hình VnPay
     private final String vnp_TmnCode = "SB1YAE0Q"; // Terminal ID của bạn
     private final String vnp_HashSecret = "LHGM8QJ30I04W1IWX3V226XHJB73RE0C"; // Khóa bí mật
-    private final String vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+    private final String vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";// dẫn đến sandbox
     private final String vnp_Version = "2.1.0";
     private final String vnp_Command = "pay";
-    private final String vnp_ReturnUrl = "http://localhost:4200/payment-result";
+    private final String vnp_ReturnUrl = "http://localhost:4200/payment-result";// url mà fe nhận kết quả sau thanh toán
 
-    /**
-     * API tạo URL thanh toán VnPay (phương thức mới sử dụng RequestBody)
-     */
+    // tạo api thanh toán
     @PostMapping("/create-payment")
     public ResponseEntity<Map<String, String>> createPayment(
             @RequestBody PaymentRequest paymentRequest,
@@ -62,30 +60,30 @@ public class VnPayController {
         vnp_Params.put("vnp_Version", vnp_Version);
         vnp_Params.put("vnp_Command", vnp_Command);
         vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
-        vnp_Params.put("vnp_Amount", String.valueOf(paymentRequest.getAmount() * 100)); // Nhân 100 theo yêu cầu VNPAY
+        vnp_Params.put("vnp_Amount", String.valueOf(paymentRequest.getAmount() * 100)); // theo yc của vnpay đồng*100
         
-        // Tạo CreateDate
+        // sinh thời gian theo vnpay yêu cầu
         Calendar cld = Calendar.getInstance();
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
         
-        vnp_Params.put("vnp_CurrCode", "VND");
-        vnp_Params.put("vnp_IpAddr", getClientIP(request));
+        vnp_Params.put("vnp_CurrCode", "VND");// loại tiền tệ
+        vnp_Params.put("vnp_IpAddr", getClientIP(request));//ip người dùng
         vnp_Params.put("vnp_Locale", "vn");
-        vnp_Params.put("vnp_OrderInfo", paymentRequest.getOrderInfo());
-        vnp_Params.put("vnp_OrderType", paymentRequest.getOrderType() != null ? paymentRequest.getOrderType() : "other");
-        vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
+        vnp_Params.put("vnp_OrderInfo", paymentRequest.getOrderInfo());// mô tả order
+        vnp_Params.put("vnp_OrderType", paymentRequest.getOrderType() != null ? paymentRequest.getOrderType() : "other"); // mặc định là other
+        vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);// trang fe nhận kq
         
-        // Tạo mã tham chiếu giao dịch
+        // Tạo mã tham chiếu giao dịch ngẫu nhiên
         String vnp_TxnRef = generateTransactionRef();
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
 
         // Sắp xếp tham số và tạo hash
         List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
-        Collections.sort(fieldNames);
-        StringBuilder hashData = new StringBuilder();
-        StringBuilder query = new StringBuilder();
+        Collections.sort(fieldNames);// theo alphabet
+        StringBuilder hashData = new StringBuilder();// chuỗi tạo chữ ký bí mật
+        StringBuilder query = new StringBuilder();//chuỗi để ghep vào url cuối
         
         Iterator<String> itr = fieldNames.iterator();
         while (itr.hasNext()) {
@@ -107,37 +105,35 @@ public class VnPayController {
                     hashData.append('&');
                 }
             }
-        }
+        }// key = value nối bằng &
 
         // Tạo chuỗi hash
-        String vnp_SecureHash = hmacSHA512(vnp_HashSecret, hashData.toString());
+        String vnp_SecureHash = hmacSHA512(vnp_HashSecret, hashData.toString());//dùng khóa bí mật vnp_HashSecret để tạo mã hash xác thực dữ liệu
         query.append("&vnp_SecureHash=").append(vnp_SecureHash);
-        String paymentUrl = vnp_Url + "?" + query;
+        String paymentUrl = vnp_Url + "?" + query;// tạo url hoàn chỉnh để ng dùng chuyểnt tới
         
         Map<String, String> response = new HashMap<>();
         response.put("paymentUrl", paymentUrl);
         
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);// trả về cho fe 
     }
     
     
-    /**
-     * API xử lý callback từ VnPay
-     */
+    // thanh toán xong VnPay gưi tham số về cho BE
     @GetMapping("/payment-callback")
     public ResponseEntity<Map<String, String>> paymentCallback(
             @RequestParam Map<String, String> queryParams) {
         
         Map<String, String> response = new HashMap<>();
         
-        log.info("Received payment callback with params: {}", queryParams);
+        log.info("Received payment callback with params: {}", queryParams);// kiểm tra chữ ký có đúng K?
         
         boolean isValidSignature = validatePaymentReturn(queryParams);
         
         if (isValidSignature) {
             String vnp_ResponseCode = queryParams.get("vnp_ResponseCode");
             log.info("Payment response code: {}", vnp_ResponseCode);
-            
+            // đúng '00' thành công, khác thì lỗi
             if ("00".equals(vnp_ResponseCode)) {
                 String orderId = queryParams.get("vnp_OrderInfo");
                 
@@ -188,6 +184,7 @@ public class VnPayController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    // hàm kiểm tra chữ ký
     private boolean validatePaymentReturn(Map<String, String> vnp_Params) {
         String vnp_SecureHash = vnp_Params.get("vnp_SecureHash");
         Map<String, String> validParams = new HashMap<>();

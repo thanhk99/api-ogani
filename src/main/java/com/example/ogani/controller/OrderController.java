@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +30,10 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
+    
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
 
     @GetMapping("/")
     @Operation(summary="Lấy ra danh sách đặt hàng")
@@ -51,6 +56,8 @@ public class OrderController {
     public ResponseEntity<?> placeOrder(@RequestBody CreateOrderRequest request){
 
         Order order = orderService.placeOrder(request);
+        messagingTemplate.convertAndSend("/topic/newOrder", 
+            Map.of("message", "Có đơn hàng mới", "orderId", order.getId()));
 
         return ResponseEntity.ok(Map.of("message", "Đặt hàng thành công" , "OrderId" ,order.getId() ));
     }
