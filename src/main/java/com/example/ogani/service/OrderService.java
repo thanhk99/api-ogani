@@ -1,6 +1,7 @@
 package com.example.ogani.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,6 +21,7 @@ import com.example.ogani.exception.NotFoundException;
 import com.example.ogani.dtos.request.CreateOrderDetailRequest;
 import com.example.ogani.dtos.request.CreateOrderRequest;
 import com.example.ogani.dtos.request.ProductInOrderRequest;
+import com.example.ogani.dtos.response.Notification;
 import com.example.ogani.repository.OrderDetailRepository;
 import com.example.ogani.repository.OrderRepository;
 import com.example.ogani.repository.ProductRepository;
@@ -45,7 +47,7 @@ public class OrderService {
     private ProductRepository productRepository;
 
     @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private SseNotificationService sseNotificationService;
 
     @Transactional
     public Order placeOrder(CreateOrderRequest request) {
@@ -90,8 +92,10 @@ public class OrderService {
         subTotalProduct(request.getOrderDetails());
         order.setTotalPrice(totalPrice);
         order.setUser(user);
+
         Order saveOrder = orderRepository.save(order);
-        messagingTemplate.convertAndSend("/topic/orders", saveOrder);
+        sendNewOrderNotification(saveOrder);
+
         return saveOrder;
     }
 
@@ -108,18 +112,41 @@ public class OrderService {
     }
 
     public ResponseEntity<?> processCheckOrder(List<ProductInOrderRequest> productIds) {
+        List<String> errors = new ArrayList<>();
+
         for (ProductInOrderRequest productInOrder : productIds) {
             long productId = productInOrder.getProductId();
-            int quantity = productInOrder.getQuantity();
-            // // Kiểm tra số lượng tồn của sản phẩm với productId và quantity
-            long availableQuantity = productRepository.findQuantityById(productId).getQuantity();
-            if (availableQuantity == 0 || availableQuantity < quantity) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Sản phẩm với ID " + productId + " không đủ số lượng tồn.");
+            String productName = productInOrder.getProductName();
+            int quantityRequest = productInOrder.getQuantity();
+
+            // Lấy sản phẩm theo ID
+            var productOpt = productRepository.findQuantityById(productId);
+
+            // Kiểm tra sản phẩm tồn tại
+            if (productOpt == null) {
+                errors.add(
+                        String.format("Sản phẩm %s - ID %d không tồn tại trong hệ thống.", productName, productId));
+                continue;
             }
 
+            long availableQuantity = productOpt.getQuantity();
+            String name = productOpt.getName();
+
+            // Kiểm tra số lượng tồn kho
+            if (availableQuantity <= 0) {
+                errors.add(String.format("Sản phẩm %s đã hết hàng.", name));
+            } else if (availableQuantity < quantityRequest) {
+                errors.add(String.format("Sản phẩm %s chỉ còn %d sản phẩm, không đủ để mua %d sản phẩm.",
+                        name, availableQuantity, quantityRequest));
+            }
         }
-        return ResponseEntity.ok(Map.of("message", "Sản phẩm đủ số lượng tồn"));
+
+        // Nếu có lỗi, trả về danh sách lỗi
+        if (!errors.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("errors", errors));
+        }
+
+        return ResponseEntity.ok(Map.of("message", "Tất cả sản phẩm đều đủ số lượng tồn."));
     }
 
     @Transactional
@@ -247,5 +274,22 @@ public class OrderService {
         }
         return ResponseEntity.badRequest().body(Map.of("message", "Không có dữ liệu"));
 
+    }
+
+    private void sendNewOrderNotification(Order order) {
+        Notification notification = new Notification();
+        notification.setType("NEW_ORDER");
+        notification.setMessage("🆕 Có đơn hàng mới #" + order.getId() + " từ " +
+                order.getFirstname() + " " + order.getLastname());
+        notification.setOrderId(order.getId());
+        notification.setTimestamp(LocalDateTime.now());
+
+        // Gửi đến admin (user ID = 1)
+        sseNotificationService.sendNotification(2L, notification);
+
+        // Hoặc broadcast đến tất cả admin đang kết nối
+        // sseNotificationService.broadcast(notification);
+
+        System.out.println("📢 Notification sent for new order: " + order.getId());
     }
 }

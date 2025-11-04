@@ -2,27 +2,27 @@ package com.example.ogani.service;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.server.ResponseStatusException;
-
 import com.example.ogani.dtos.request.LoginRequest;
+import com.example.ogani.dtos.request.RessetPasswordRequest;
 import com.example.ogani.dtos.request.SignupRequest;
 import com.example.ogani.dtos.response.AuthResponse;
-import com.example.ogani.dtos.request.RefreshTokenRequest;
+import com.example.ogani.models.PasswordResetToken;
 import com.example.ogani.models.RefreshToken;
 import com.example.ogani.models.User;
 import com.example.ogani.models.User.Role;
-import com.example.ogani.repository.RefreshTokenRepository;
+import com.example.ogani.repository.PasswordResetTokenRepository;
 import com.example.ogani.repository.UserRepository;
 import com.example.ogani.security.jwt.JwtUtil;
 
@@ -38,10 +38,18 @@ public class AuthService {
     private UserRepository userRepository;
 
     @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired 
+    private PasswordResetTokenRepository passwordResetTokenRepository ;
+
+    @Autowired 
+    private EmailService emailService;
+
+    @Autowired 
+    private EmailTemplateService emailTemplateService;
+
+    private static final int EXPIRATION_MINUTES = 10; // Token hết hạn sau 1 giờ
 
     public ResponseEntity<?> signup(SignupRequest signupRequest) {
         try {
@@ -138,42 +146,6 @@ public class AuthService {
             throw new RuntimeException("Login failed", e);
         }
     }
-
-    // @Transactional
-    // public ResponseEntity<?> RefreshTokenService(RefreshTokenRequest refreshTokenRequest) {
-    //     try {
-    //         String requestRefreshToken = refreshTokenRequest.getRefreshToken();
-    //         if (requestRefreshToken == null) {
-    //             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-    //                     .body(Map.of("error", "Invalid refresh token"));
-    //         }
-
-    //         RefreshToken refreshToken = refreshTokenRepository.findByToken(requestRefreshToken);
-    //         if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-    //             refreshTokenRepository.delete(refreshToken);
-    //             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "refresh token expried"));
-    //         }
-    //         refreshTokenRepository.delete(refreshToken);
-
-    //         // Tạo token mới
-    //         User user = refreshToken.getUser();
-    //         String newAccessToken = jwtUtil.generateAccessToken(user);
-
-    //         // Trả về response
-    //         return ResponseEntity.ok(
-    //                 new AuthResponse(
-    //                         newAccessToken,
-    //                         refreshToken.getToken(),
-    //                         user.getUid(),
-    //                         user.getUsername()));
-
-    //     } catch (ResponseStatusException e) {
-    //         throw e; // Re-throw các lỗi đã được định nghĩa
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "refresh token expried"));
-    //     }
-    // }
-
     public ResponseEntity<?> isExistEmail(SignupRequest signupRequest) {
         try {
             User isExisit = userRepository.findByEmail(signupRequest.getEmail());
@@ -185,5 +157,87 @@ public class AuthService {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("message", "SERVER_ERROR"));
         }
+    }
+
+    @Async("taskExecutor")
+    public void handleForgotPasswordAsync(User user) {
+        try {
+            System.out.println("🔄 [ASYNC] Starting email sending process for: " + user.getEmail());
+            
+            PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByUser(user);
+            String resetToken = "";
+            
+            if (passwordResetToken != null) {
+                if (passwordResetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+                    resetToken = generateResetToken(user);
+                } else {
+                    resetToken = passwordResetToken.getToken();
+                }
+
+            }      
+            else{
+                resetToken=generateResetToken(user);
+            }
+            String resetLink = "http://localhost:4200/reset-password?token=" + resetToken;
+            String htmlContent = emailTemplateService.createForgotPasswordTemplate(
+                user.getFirstname() + user.getLastname(),
+                resetToken,
+                resetLink
+            );
+            
+            emailService.sendHtmlMessage(
+                user.getEmail(),
+                " Đặt Lại Mật Khẩu",
+                htmlContent
+            );
+            System.out.println(resetToken);
+            System.out.println(" [ASYNC] Email sent successfully to: " + user.getEmail());
+            
+        } catch (Exception e) {
+            System.err.println(" [ASYNC] Failed to send email to: " + user.getEmail());
+            e.printStackTrace();
+        }
+    }
+
+    public String generateResetToken(User user) {
+        // Xóa token cũ nếu có
+        passwordResetTokenRepository.deleteByUser(user);
+
+        // Tạo token mới
+        String token = UUID.randomUUID().toString();
+        
+        PasswordResetToken resetToken = new PasswordResetToken();
+        resetToken.setToken(token);
+        resetToken.setUser(user);
+        resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES));
+        
+        passwordResetTokenRepository.save(resetToken);
+        
+        return token;
+    }
+
+    public ResponseEntity<?> validateAndResetPassword(RessetPasswordRequest entity) {
+        Optional<PasswordResetToken> exitstToken = passwordResetTokenRepository.findByToken(entity.getToken());
+        if(!exitstToken.isPresent()){
+            return ResponseEntity.badRequest().body(Map.of("status","bad_request","message","Token không hợp lệ"));
+        }
+        PasswordResetToken resetToken =exitstToken.get();
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            passwordResetTokenRepository.delete(resetToken);
+                return ResponseEntity.badRequest().body(Map.of("status","bad_request","message","Token hết hạn"));
+        }
+
+        User user = resetToken.getUser();
+        if(!entity.getConfirmPassword().equals(entity.getPassword())){
+            return ResponseEntity.badRequest().body(Map.of("status","bad_request","message","Mật khẩu xác nhận không trùng khớp"));          
+        }
+        // Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(entity.getPassword()));
+        userRepository.save(user);
+
+        // Xóa token đã sử dụng
+        passwordResetTokenRepository.delete(resetToken);
+
+        return ResponseEntity.ok(Map.of("status","success","message","Cập nhật mật khẩu thành công "));
     }
 }
