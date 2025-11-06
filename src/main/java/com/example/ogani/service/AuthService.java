@@ -19,20 +19,15 @@ import com.example.ogani.dtos.request.RessetPasswordRequest;
 import com.example.ogani.dtos.request.SignupRequest;
 import com.example.ogani.dtos.response.AuthResponse;
 import com.example.ogani.models.PasswordResetToken;
-import com.example.ogani.models.RefreshToken;
 import com.example.ogani.models.User;
 import com.example.ogani.models.User.Role;
 import com.example.ogani.repository.PasswordResetTokenRepository;
 import com.example.ogani.repository.UserRepository;
-import com.example.ogani.security.jwt.JwtUtil;
 
 @Service
 public class AuthService {
     @Autowired
     private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private JwtUtil jwtUtil;
 
     @Autowired
     private UserRepository userRepository;
@@ -125,13 +120,8 @@ public class AuthService {
                         .body(Map.of("error", "Account already in use"));
             }
 
-            String accessToken = jwtUtil.generateAccessToken(user);
-            RefreshToken refreshToken = jwtUtil.generateRefreshToken(user);
-
             return ResponseEntity.ok(
                     new AuthResponse(
-                            accessToken,
-                            refreshToken.getToken(),
                             user.getUid(),
                             user.getUsername(),
                             user.getRole()));
