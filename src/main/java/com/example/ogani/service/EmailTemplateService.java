@@ -13,9 +13,9 @@ import java.time.format.DateTimeFormatter;
 public class EmailTemplateService {
     
     public String createForgotPasswordTemplate(String shareholderName, String resetToken, String resetLink) {
-        String template = loadTemplate("templates/forgot-password-template.html");
+        String template = loadTemplate("template/forgot-password-template.html");
         return template
-            .replace("{{SHAREHOLDER_NAME}}", shareholderName)
+            .replace("{{USER_NAME}}", shareholderName)
             .replace("{{RESET_LINK}}", resetLink)
             .replace("{{RESET_TOKEN}}", resetToken);
     }
@@ -23,7 +23,7 @@ public class EmailTemplateService {
     public String createPasswordResetSuccessTemplate(String shareholderName, LocalDateTime resetTime) {
         String template = loadTemplate("templates/password-reset-success-template.html");
         return template
-            .replace("{{SHAREHOLDER_NAME}}", shareholderName)
+            .replace("{{USER_NAME}}", shareholderName)
             .replace("{{RESET_TIME}}", resetTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
     }
 

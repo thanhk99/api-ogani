@@ -1,6 +1,7 @@
 package com.example.ogani.service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +15,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import com.example.ogani.dtos.request.ChangePasswordRequest;
 import com.example.ogani.dtos.request.LoginRequest;
 import com.example.ogani.dtos.request.RessetPasswordRequest;
 import com.example.ogani.dtos.request.SignupRequest;
@@ -146,6 +149,27 @@ public class AuthService {
             throw new RuntimeException("Login failed", e);
         }
     }
+    public ResponseEntity<?> changePassword(ChangePasswordRequest request)
+    {
+        Map<String, String> response = new HashMap<>();
+        Optional<User> userpass = userRepository.findByUsername(request.getUsername());
+        if (userpass.isPresent()) {
+            User user = userpass.get();
+            if (passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+                user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                userRepository.save(user);
+                response.put("message", "Password changed successfully");
+                response.put("status", "success");
+            } else {
+                response.put("status", "error");
+            }
+        } else {
+            response.put("status", "error");
+            response.put("message", "User not found");
+        }
+        return ResponseEntity.ok(response);
+    }
+
     public ResponseEntity<?> isExistEmail(SignupRequest signupRequest) {
         try {
             User isExisit = userRepository.findByEmail(signupRequest.getEmail());
