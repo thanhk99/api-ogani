@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import com.example.ogani.dtos.request.UpdateProfileRequest;
 import com.example.ogani.models.User;
 import com.example.ogani.repository.UserRepository;
-import com.example.ogani.security.jwt.JwtUtil;
 
 @Service
 public class UserService {

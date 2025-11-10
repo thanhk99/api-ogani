@@ -41,7 +41,8 @@ public class TagService {
     public ResponseEntity<?> createTag(CreateTagRequest request) {
         Tag tagExists = tagRepository.findByName(request.getName());
         if (tagExists != null && tagExists.isEnable()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Tag is already"));
+            return ResponseEntity.badRequest().body(
+                    Map.of("message", "Tag '" + tagExists.getName() + "' đã tồn tại, vui lòng chọn tên khác!"));
         } else if (tagExists != null && !tagExists.isEnable()) {
             tagExists.setEnable(true);
             tagRepository.save(tagExists);
@@ -49,7 +50,7 @@ public class TagService {
         } else {
             Tag tag = new Tag();
             tag.setName(request.getName());
-            tag.setEnable(false);
+            tag.setEnable(true);
             tagRepository.save(tag);
             return ResponseEntity.ok(Map.of("message", "Create tag success"));
         }

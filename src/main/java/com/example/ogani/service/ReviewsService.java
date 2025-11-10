@@ -18,7 +18,7 @@ public class ReviewsService {
 
     public ResponseEntity<?> createReview(Reviews reviewRequest) {
         if (reviewsRepository.existsByProductIdAndReviewerNameAndOrderId(
-            reviewRequest.getProductId(), reviewRequest.getReviewerName(),reviewRequest.getOrderId())) {
+            reviewRequest.getProductId(), reviewRequest.getReviewerName(),reviewRequest.getOrderId().getId())) {
             return ResponseEntity.badRequest().body(Map.of(
                 "message", "You have already submitted a review for this product"
             ));
@@ -50,6 +50,11 @@ public class ReviewsService {
     }
     public ResponseEntity<?> getProductOrderId(Long productId , Long orderId) {
         Reviews list = reviewsRepository.findByProductIdAndOrderId(productId,orderId);
+        // if (list == null) {
+        //     return ResponseEntity.badRequest().body(Map.of(
+        //         "message", "No review found for this product and order"
+        //     ));
+        // }
         return ResponseEntity.ok(Map.of(
             "data", list
         ));

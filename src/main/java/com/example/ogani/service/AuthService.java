@@ -22,12 +22,10 @@ import com.example.ogani.dtos.request.RessetPasswordRequest;
 import com.example.ogani.dtos.request.SignupRequest;
 import com.example.ogani.dtos.response.AuthResponse;
 import com.example.ogani.models.PasswordResetToken;
-import com.example.ogani.models.RefreshToken;
 import com.example.ogani.models.User;
 import com.example.ogani.models.User.Role;
 import com.example.ogani.repository.PasswordResetTokenRepository;
 import com.example.ogani.repository.UserRepository;
-import com.example.ogani.security.jwt.JwtUtil;
 
 @Service
 public class AuthService {
@@ -35,21 +33,18 @@ public class AuthService {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Autowired 
-    private PasswordResetTokenRepository passwordResetTokenRepository ;
+    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
 
-    @Autowired 
+    @Autowired
     private EmailService emailService;
 
-    @Autowired 
+    @Autowired
     private EmailTemplateService emailTemplateService;
 
     private static final int EXPIRATION_MINUTES = 10; // Token hết hạn sau 1 giờ
@@ -57,33 +52,50 @@ public class AuthService {
     public ResponseEntity<?> signup(SignupRequest signupRequest) {
         try {
             // Validate dữ liệu đầu vào
+            Map<String, String> validationErrors = new HashMap<>();
+
             if (signupRequest.getEmail() == null || signupRequest.getEmail().isEmpty()) {
-                return ResponseEntity
-                        .badRequest()
-                        .body(Map.of(
-                                "error", "VALIDATION_ERROR",
-                                "message", "Email không được để trống",
-                                "field", "email"));
+                validationErrors.put("email", "Email không được để trống");
             }
 
             if (signupRequest.getPassword() == null || signupRequest.getPassword().length() < 6) {
+                validationErrors.put("password", "Mật khẩu phải có ít nhất 6 ký tự");
+            }
+
+            if (signupRequest.getUsername() == null || signupRequest.getUsername().isEmpty()) {
+                validationErrors.put("username", "Tên đăng nhập không được để trống");
+            }
+
+            // Trả về tất cả lỗi validation cùng lúc
+            if (!validationErrors.isEmpty()) {
                 return ResponseEntity
                         .badRequest()
                         .body(Map.of(
                                 "error", "VALIDATION_ERROR",
-                                "message", "Mật khẩu phải có ít nhất 6 ký tự",
-                                "field", "password"));
+                                "message", "Dữ liệu không hợp lệ",
+                                "errors", validationErrors));
             }
 
+            // Kiểm tra trùng lặp - QUAN TRỌNG: phải return ngay khi có lỗi
             if (userRepository.existsByEmail(signupRequest.getEmail())) {
                 return ResponseEntity
-                        .status(HttpStatus.CONFLICT) // 409 Conflict
+                        .status(HttpStatus.CONFLICT)
                         .body(Map.of(
                                 "error", "EMAIL_EXISTS",
                                 "message", "Email đã được sử dụng",
                                 "field", "email"));
             }
 
+            if (userRepository.existsByUsername(signupRequest.getUsername())) {
+                return ResponseEntity
+                        .status(HttpStatus.CONFLICT)
+                        .body(Map.of(
+                                "error", "USERNAME_EXISTS",
+                                "message", "Tên đăng nhập đã được sử dụng",
+                                "field", "username"));
+            }
+
+            // CHỈ chạy xuống đây khi KHÔNG có lỗi gì
             User user = new User();
             user.setUsername(signupRequest.getUsername());
             user.setEmail(signupRequest.getEmail());
@@ -94,7 +106,7 @@ public class AuthService {
             User savedUser = userRepository.save(user);
 
             return ResponseEntity
-                    .status(HttpStatus.CREATED) // 201 Created
+                    .status(HttpStatus.CREATED)
                     .body(Map.of(
                             "success", true,
                             "message", "Đăng ký thành công",
@@ -104,7 +116,6 @@ public class AuthService {
                                     "email", savedUser.getEmail())));
 
         } catch (Exception e) {
-            // Xử lý lỗi hệ thống
             return ResponseEntity
                     .internalServerError()
                     .body(Map.of(
@@ -128,13 +139,8 @@ public class AuthService {
                         .body(Map.of("error", "Account already in use"));
             }
 
-            String accessToken = jwtUtil.generateAccessToken(user);
-            RefreshToken refreshToken = jwtUtil.generateRefreshToken(user);
-
             return ResponseEntity.ok(
                     new AuthResponse(
-                            accessToken,
-                            refreshToken.getToken(),
                             user.getUid(),
                             user.getUsername(),
                             user.getRole()));
@@ -149,8 +155,8 @@ public class AuthService {
             throw new RuntimeException("Login failed", e);
         }
     }
-    public ResponseEntity<?> changePassword(ChangePasswordRequest request)
-    {
+
+    public ResponseEntity<?> changePassword(ChangePasswordRequest request) {
         Map<String, String> response = new HashMap<>();
         Optional<User> userpass = userRepository.findByUsername(request.getUsername());
         if (userpass.isPresent()) {
@@ -187,10 +193,10 @@ public class AuthService {
     public void handleForgotPasswordAsync(User user) {
         try {
             System.out.println("🔄 [ASYNC] Starting email sending process for: " + user.getEmail());
-            
+
             PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByUser(user);
             String resetToken = "";
-            
+
             if (passwordResetToken != null) {
                 if (passwordResetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
                     resetToken = generateResetToken(user);
@@ -198,25 +204,22 @@ public class AuthService {
                     resetToken = passwordResetToken.getToken();
                 }
 
-            }      
-            else{
-                resetToken=generateResetToken(user);
+            } else {
+                resetToken = generateResetToken(user);
             }
             String resetLink = "http://localhost:4200/reset-password?token=" + resetToken;
             String htmlContent = emailTemplateService.createForgotPasswordTemplate(
-                user.getFirstname() + user.getLastname(),
-                resetToken,
-                resetLink
-            );
-            
+                    user.getFirstname() + user.getLastname(),
+                    resetToken,
+                    resetLink);
+
             emailService.sendHtmlMessage(
-                user.getEmail(),
-                " Đặt Lại Mật Khẩu",
-                htmlContent
-            );
+                    user.getEmail(),
+                    " Đặt Lại Mật Khẩu",
+                    htmlContent);
             System.out.println(resetToken);
             System.out.println(" [ASYNC] Email sent successfully to: " + user.getEmail());
-            
+
         } catch (Exception e) {
             System.err.println(" [ASYNC] Failed to send email to: " + user.getEmail());
             e.printStackTrace();
@@ -229,31 +232,32 @@ public class AuthService {
 
         // Tạo token mới
         String token = UUID.randomUUID().toString();
-        
+
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setToken(token);
         resetToken.setUser(user);
         resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES));
-        
+
         passwordResetTokenRepository.save(resetToken);
-        
+
         return token;
     }
 
     public ResponseEntity<?> validateAndResetPassword(RessetPasswordRequest entity) {
         Optional<PasswordResetToken> exitstToken = passwordResetTokenRepository.findByToken(entity.getToken());
-        if(!exitstToken.isPresent()){
-            return ResponseEntity.badRequest().body(Map.of("status","bad_request","message","Token không hợp lệ"));
+        if (!exitstToken.isPresent()) {
+            return ResponseEntity.badRequest().body(Map.of("status", "bad_request", "message", "Token không hợp lệ"));
         }
-        PasswordResetToken resetToken =exitstToken.get();
+        PasswordResetToken resetToken = exitstToken.get();
         if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             passwordResetTokenRepository.delete(resetToken);
-                return ResponseEntity.badRequest().body(Map.of("status","bad_request","message","Token hết hạn"));
+            return ResponseEntity.badRequest().body(Map.of("status", "bad_request", "message", "Token hết hạn"));
         }
 
         User user = resetToken.getUser();
-        if(!entity.getConfirmPassword().equals(entity.getPassword())){
-            return ResponseEntity.badRequest().body(Map.of("status","bad_request","message","Mật khẩu xác nhận không trùng khớp"));          
+        if (!entity.getConfirmPassword().equals(entity.getPassword())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("status", "bad_request", "message", "Mật khẩu xác nhận không trùng khớp"));
         }
         // Cập nhật mật khẩu mới
         user.setPassword(passwordEncoder.encode(entity.getPassword()));
@@ -262,6 +266,6 @@ public class AuthService {
         // Xóa token đã sử dụng
         passwordResetTokenRepository.delete(resetToken);
 
-        return ResponseEntity.ok(Map.of("status","success","message","Cập nhật mật khẩu thành công "));
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Cập nhật mật khẩu thành công "));
     }
 }

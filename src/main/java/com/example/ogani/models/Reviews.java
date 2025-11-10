@@ -18,8 +18,9 @@ public class Reviews {
     @Column(nullable = false)
     private Long productId;
     
-    @Column (nullable =  false)
-    private Long orderId;
+    @ManyToOne
+    @JoinColumn(name = "order_id" , nullable =  false , referencedColumnName = "id")
+    private Order orderId;
     
     @Column(nullable = false)
     private String reviewerName;
