@@ -20,9 +20,9 @@ public interface ReviewsRepository extends JpaRepository<Reviews, Long> {
        Reviews findByProductIdAndOrderId(@Param("productId") Long productId, 
                                           @Param("orderId") Long orderId);
 
-       @Query(value = "SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END FROM product_review WHERE product_id = :productId AND reviewer_name = :reviewerName AND order_id = :orderId", 
-              nativeQuery = true)
-       boolean existsByProductIdAndReviewerNameAndOrderId(@Param("productId") Long productId, 
+       @Query(value = "SELECT COUNT(*) > 0 FROM reviews WHERE product_id = :productId AND reviewer_name = :reviewerName AND order_id = :orderId", 
+           nativeQuery = true)
+       Long existsByProductIdAndReviewerNameAndOrderId(@Param("productId") Long productId, 
                                                         @Param("reviewerName") String reviewerName, 
                                                         @Param("orderId") Long orderId);
 }

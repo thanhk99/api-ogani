@@ -7,7 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.example.ogani.dtos.request.ReviewRequest;
+import com.example.ogani.models.Order;
 import com.example.ogani.models.Reviews;
+import com.example.ogani.repository.OrderRepository;
 import com.example.ogani.repository.ReviewsRepository;
 
 @Service
@@ -16,16 +19,31 @@ public class ReviewsService {
     @Autowired
     private ReviewsRepository reviewsRepository;
 
-    public ResponseEntity<?> createReview(Reviews reviewRequest) {
+    @Autowired
+    private OrderRepository orderRepository;
+
+    public ResponseEntity<?> createReview(ReviewRequest reviewRequest) {
+        Order order = orderRepository.findById(reviewRequest.getOrderId()).orElse(null);
+        if (order == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "message", "Order not found"
+            ));
+        }
         if (reviewsRepository.existsByProductIdAndReviewerNameAndOrderId(
-            reviewRequest.getProductId(), reviewRequest.getReviewerName(),reviewRequest.getOrderId().getId())) {
+            reviewRequest.getProductId(), reviewRequest.getReviewerName(),reviewRequest.getOrderId()) > 0) {
             return ResponseEntity.badRequest().body(Map.of(
                 "message", "You have already submitted a review for this product"
             ));
         }
         
-        
-        reviewsRepository.save(reviewRequest);
+        Reviews review = new Reviews();
+        review.setProductId(reviewRequest.getProductId());
+        review.setOrderId(order);
+        review.setReviewRating(reviewRequest.getReviewRating());
+        review.setReviewComment(reviewRequest.getReviewComment());
+        review.setReviewerName(reviewRequest.getReviewerName());
+
+        reviewsRepository.save(review);
         return ResponseEntity.ok().body(Map.of(
             "message", "Review submitted successfully"
         ));

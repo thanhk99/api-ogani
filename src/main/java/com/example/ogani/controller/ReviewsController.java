@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.ogani.dtos.request.ReviewRequest;
 import com.example.ogani.models.Reviews;
 import com.example.ogani.service.ReviewsService;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +24,7 @@ public class ReviewsController {
     private ReviewsService reviewsService;
     
     @PostMapping("/create")
-    public ResponseEntity<?> CreateReview(@RequestBody Reviews entity) {
+    public ResponseEntity<?> CreateReview(@RequestBody ReviewRequest entity) {
         return reviewsService.createReview(entity);
     }
     
